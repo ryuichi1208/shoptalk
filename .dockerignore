@@ -1,0 +1,9 @@
+.git
+.github
+.env*
+.kubeconfig
+node_modules
+coverage
+docs
+test
+*.log

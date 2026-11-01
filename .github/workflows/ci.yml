@@ -1,0 +1,48 @@
+name: アプリとKubernetesの検証
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: アプリケーションのテスト
+        run: npm test
+      - name: シェルスクリプトの構文確認
+        run: bash -n scripts/kind-up.sh scripts/token.sh
+      - name: kindの準備
+        uses: helm/kind-action@v1.12.0
+        with:
+          install_only: true
+      - name: Kubernetesへの配置
+        run: bash scripts/kind-up.sh
+      - name: 障害と復旧の動作確認
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl --kubeconfig .kubeconfig -n shoptalk port-forward svc/shoptalk-api 8080:8080 > /tmp/shoptalk-port-forward.log 2>&1 &
+          forward_pid=$!
+          trap 'kill "$forward_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://localhost:8080/healthz > /dev/null; then break; fi
+            sleep 1
+          done
+          LAB_TOKEN="$(bash scripts/token.sh)" npm run smoke
+      - name: 失敗時の診断情報
+        if: failure()
+        run: |
+          kubectl --kubeconfig .kubeconfig -n shoptalk get pods -o wide || true
+          kubectl --kubeconfig .kubeconfig -n shoptalk logs deployment/shoptalk-api --tail=100 || true
+          kubectl --kubeconfig .kubeconfig -n shoptalk logs deployment/shoptalk-ai --tail=100 || true
+      - name: クラスタの削除
+        if: always()
+        run: kind delete cluster --name shoptalk

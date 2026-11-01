@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ShopTalk — 注文のお手伝い</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/chat.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/"
+        >Shop<span>Talk</span><small>INCIDENT LAB</small></a
+      >
+      <nav>
+        <a class="active" href="/">チャット</a
+        ><a href="/lab">演習と観測 <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+    <main class="store-layout">
+      <section class="intro">
+        <p class="eyebrow">CUSTOMER SUPPORT / DEMO</p>
+        <h1>いつもの買い物に、<br />いつもの安心を。</h1>
+        <p class="lede">
+          配送先の変更や注文の相談を、<br />ShopTalkがお手伝いします。
+        </p>
+        <div class="order-card">
+          <span class="order-icon" aria-hidden="true">▧</span>
+          <div>
+            <p class="eyebrow">SAMPLE ORDER</p>
+            <h2>日々の暮らしを整えるセット</h2>
+            <p>注文番号 ST-2048 · 発送準備中</p>
+          </div>
+          <span class="pill">サンプル</span>
+        </div>
+        <div class="note">
+          <strong>このサービスについて</strong>
+          <p>
+            書籍『インシデント対応
+            実践ガイド』の架空サービスです。回答は定型文で、実際の注文や配送先は変更されません。個人情報は入力しないでください。
+          </p>
+        </div>
+      </section>
+      <section class="chat-panel" aria-label="チャットサポート">
+        <div class="chat-heading">
+          <div class="avatar" aria-hidden="true">S</div>
+          <div>
+            <h2>ShopTalk サポート</h2>
+            <p>注文に関するお問い合わせ</p>
+          </div>
+          <span class="pill">デモ</span>
+        </div>
+        <label class="tenant-label" for="tenant"
+          >お問い合わせ先の店舗<select id="tenant">
+            <option value="harbor">Harbor Store</option>
+            <option value="maple">Maple Market</option>
+            <option value="cedar">Cedar Shop</option>
+          </select></label
+        >
+        <div id="messages" class="messages" role="log" aria-live="polite">
+          <div class="message assistant">
+            こんにちは。注文に関するご相談をお聞かせください。
+          </div>
+        </div>
+        <div class="suggestions">
+          <button type="button" id="suggest">
+            注文の配送先を変更したいです。
+          </button>
+        </div>
+        <form id="chat-form">
+          <label class="sr-only" for="message">お問い合わせ内容</label>
+          <div class="composer">
+            <textarea
+              id="message"
+              maxlength="500"
+              rows="2"
+              placeholder="お問い合わせを入力…"
+              required
+            ></textarea
+            ><button type="submit" id="send">
+              送信 <span aria-hidden="true">↑</span>
+            </button>
+          </div>
+          <p class="fine">回答後、受付記録が非同期で処理されます。</p>
+        </form>
+      </section>
+    </main>
+    <footer>
+      ShopTalk Incident Lab <span>判断し、復旧し、学び続ける。</span>
+    </footer>
+  </body>
+</html>

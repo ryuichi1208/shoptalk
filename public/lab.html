@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ShopTalk — 演習と観測</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/lab.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/"
+        >Shop<span>Talk</span><small>INCIDENT LAB</small></a
+      >
+      <nav>
+        <a href="/">チャット</a><a class="active" href="/lab">演習と観測</a>
+      </nav>
+    </header>
+    <main class="lab">
+      <div class="page-heading">
+        <div>
+          <p class="eyebrow">OBSERVE → DECIDE → RECOVER</p>
+          <h1>何が起きているか。<br />次に何をするか。</h1>
+        </div>
+        <p id="connection" role="status">観測データを取得しています…</p>
+      </div>
+      <div class="stats">
+        <article>
+          <p>実行中の要求</p>
+          <strong id="inflight">—</strong><small>チャットAPI</small>
+        </article>
+        <article>
+          <p>記録待ち</p>
+          <strong id="queued">—</strong><small>後続処理キュー / 上限200</small>
+        </article>
+        <article>
+          <p>記録完了</p>
+          <strong id="recorded">—</strong><small>プロセス起動後の累計</small>
+        </article>
+        <article>
+          <p>AI呼び出し倍率</p>
+          <strong id="amplification">—</strong
+          ><small>呼び出し試行数 ÷ チャット要求数</small>
+        </article>
+      </div>
+      <section class="panel">
+        <div class="section-heading">
+          <h2>テナント別の影響</h2>
+          <span class="pill">2秒ごとに更新</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>店舗</th>
+                <th>要求</th>
+                <th>通常応答</th>
+                <th>縮退応答</th>
+                <th>失敗</th>
+                <th>受付制限</th>
+                <th>p95</th>
+                <th>AI試行</th>
+              </tr>
+            </thead>
+            <tbody id="tenants"></tbody>
+          </table>
+        </div>
+        <p class="fine">
+          件数は起動後の累計です。p95は店舗ごとの直近100要求（失敗・受付制限を含む）から算出します。縮退応答は注文変更の受付完了を意味しません。
+        </p>
+      </section>
+      <div class="lab-columns">
+        <section class="panel">
+          <p class="eyebrow">EXERCISE CONTROLS</p>
+          <h2>条件を変えて観察する</h2>
+          <p>
+            障害の発生と対処を別々に操作できます。設定変更は新しい要求から適用されます。
+          </p>
+          <form id="controls">
+            <label for="token"
+              >演習用トークン<input
+                type="password"
+                id="token"
+                autocomplete="off"
+                placeholder="起動時に発行されたトークン"
+                required /></label
+            ><label for="scenario"
+              >障害シナリオ<select id="scenario">
+                <option value="normal">正常</option>
+                <option value="tenant-latency">
+                  Harbor StoreだけAI応答が遅い
+                </option>
+                <option value="ai-latency">すべての店舗でAI応答が遅い</option>
+                <option value="retry-storm">依存先が503を返す</option>
+                <option value="queue-backlog">応答後の記録処理が止まる</option>
+              </select></label
+            >
+            <div class="field-grid">
+              <label for="retries"
+                >再試行回数<input
+                  type="number"
+                  id="retries"
+                  min="0"
+                  max="3"
+                  value="2"
+                  required /></label
+              ><label for="timeout"
+                >試行ごとの制限時間（ms）<input
+                  type="number"
+                  id="timeout"
+                  min="50"
+                  max="3000"
+                  value="1000"
+                  required /></label
+              ><label for="max-inflight"
+                >同時受付上限<input
+                  type="number"
+                  id="max-inflight"
+                  min="1"
+                  max="32"
+                  value="8"
+                  required
+              /></label>
+            </div>
+            <label class="checkbox"
+              ><input type="checkbox" id="fallback" />
+              AIを呼ばず、縮退メッセージを返す</label
+            >
+            <div class="actions">
+              <button type="submit">設定を適用</button
+              ><button type="button" class="secondary" id="reset">
+                正常設定へ戻す
+              </button>
+            </div>
+            <p id="config-result" role="status" class="fine"></p>
+          </form>
+          <details>
+            <summary>現在適用されている設定</summary>
+            <pre id="current-config"></pre>
+          </details>
+        </section>
+        <section class="panel">
+          <p class="eyebrow">DECISION NOTES</p>
+          <h2>復旧操作の前に</h2>
+          <ol class="questions">
+            <li>
+              <strong>影響は誰に出ていますか。</strong>
+              <p>全体の件数と、店舗ごとの失敗・待ち時間を比較してください。</p>
+            </li>
+            <li>
+              <strong>対処の効果と副作用は何ですか。</strong>
+              <p>
+                タイムアウトを延ばすと、処理中の要求はどう変わりますか。縮退すると、利用者は何ができなくなりますか。
+              </p>
+            </li>
+            <li>
+              <strong>何を確認して復旧としますか。</strong>
+              <p>
+                新しい要求の成功に加え、記録待ちが解消したかも確認してください。
+              </p>
+            </li>
+          </ol>
+          <div class="note">
+            <strong>演習の進め方</strong>
+            <p>
+              別ターミナルで
+              <code>npm run load</code>
+              を実行すると3店舗に継続的に要求を送れます。進行役が障害を設定し、対応者は店舗別の数値とログから調査すると、判断の練習になります。
+            </p>
+          </div>
+          <a href="/metrics">Prometheus形式のメトリクスを見る ↗</a>
+        </section>
+      </div>
+      <section class="panel">
+        <div class="section-heading">
+          <h2>最近のイベント</h2>
+          <span class="fine">新しい順 / 最大30件</span>
+        </div>
+        <pre id="events" class="event-log" aria-label="最近のイベント"></pre>
+      </section>
+    </main>
+    <footer>
+      ShopTalk Incident Lab
+      <span
+        >メモリ内の演習環境です。Pod再起動で記録と設定は初期化されます。</span
+      >
+    </footer>
+  </body>
+</html>
